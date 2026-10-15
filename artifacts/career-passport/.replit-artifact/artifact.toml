@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Career Passport"
+description = "A personal professional record that people can use to keep their profile, employment history, and achievements together, track verification status, and share a polished career profile."
+version = "1.0.0"
+id = "artifacts/career-passport"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23852
+
+[services.development]
+run = "pnpm --filter @workspace/career-passport run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/career-passport", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/career-passport/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23852"
+BASE_PATH = "/"
