@@ -3,20 +3,22 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Career Passport API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: passport
+  - name: employers
+  - name: performance
+  - name: public
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +26,1017 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /me/passport:
+    get:
+      operationId: getMyPassport
+      tags: [passport]
+      summary: Get the authenticated employee's passport
+      responses:
+        "200":
+          description: Passport records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Passport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /me/dashboard:
+    get:
+      operationId: getDashboardSummary
+      tags: [passport]
+      summary: Get dashboard counts and verification activity
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /me/profile:
+    patch:
+      operationId: updateProfile
+      tags: [passport]
+      summary: Update profile and public profile preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeProfile"
+  /employments:
+    get:
+      operationId: listEmployments
+      tags: [passport]
+      summary: List the authenticated employee's employment records
+      responses:
+        "200":
+          description: Employment records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employment"
+    post:
+      operationId: createEmployment
+      tags: [passport]
+      summary: Add an employment record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentInput"
+      responses:
+        "201":
+          description: Created employment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employment"
+  /employments/{employmentId}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      operationId: updateEmployment
+      tags: [passport]
+      summary: Update an employment record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmploymentUpdate"
+      responses:
+        "200":
+          description: Updated employment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employment"
+    delete:
+      operationId: deleteEmployment
+      tags: [passport]
+      summary: Delete an employment record and its active verification requests
+      responses:
+        "204":
+          description: Deleted
+  /achievements:
+    get:
+      operationId: listAchievements
+      tags: [passport]
+      summary: List the authenticated employee's achievements
+      responses:
+        "200":
+          description: Achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Achievement"
+    post:
+      operationId: createAchievement
+      tags: [passport]
+      summary: Add an achievement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AchievementInput"
+      responses:
+        "201":
+          description: Created achievement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+  /achievements/{achievementId}:
+    parameters:
+      - name: achievementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updateAchievement
+      tags: [passport]
+      summary: Update an achievement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AchievementUpdate"
+      responses:
+        "200":
+          description: Updated achievement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+    delete:
+      operationId: deleteAchievement
+      tags: [passport]
+      summary: Delete an achievement
+      responses:
+        "204":
+          description: Deleted
+  /organizations:
+    get:
+      operationId: listVerifiedEmployers
+      tags: [employers]
+      summary: List domain-verified employer organizations without verifier contact details
+      responses:
+        "200":
+          description: Verified organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrganizationSummary"
+    post:
+      operationId: createOrganization
+      tags: [employers]
+      summary: Start employer domain verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationInput"
+      responses:
+        "201":
+          description: Organization awaiting domain proof
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+  /organizations/mine:
+    get:
+      operationId: listMyOrganizations
+      tags: [employers]
+      summary: List organizations where the authenticated user has a membership
+      responses:
+        "200":
+          description: Organization memberships
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MyOrganization"
+  /organizations/{organizationId}/domain-challenge:
+    parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: requestDomainChallenge
+      tags: [employers]
+      summary: Generate a DNS TXT proof for an employer domain
+      responses:
+        "200":
+          description: DNS record to publish
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainChallenge"
+  /organizations/{organizationId}/verify-domain:
+    parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: verifyOrganizationDomain
+      tags: [employers]
+      summary: Check DNS proof and activate the organization owner
+      responses:
+        "200":
+          description: Domain verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /organizations/{organizationId}/verifiers:
+    parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listOrganizationVerifiers
+      tags: [employers]
+      summary: List authorized verifiers for organization administrators
+      responses:
+        "200":
+          description: Verifier memberships
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VerifierMembership"
+    post:
+      operationId: inviteVerifier
+      tags: [employers]
+      summary: Invite a same-domain verifier; activation requires authenticated identity matching the invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifierInvitationInput"
+      responses:
+        "201":
+          description: Invitation sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifierInvitation"
+  /organizations/{organizationId}/verifiers/{membershipId}:
+    parameters:
+      - name: organizationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: membershipId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: revokeVerifierMembership
+      tags: [employers]
+      summary: Revoke verifier access
+      responses:
+        "204":
+          description: Verifier access revoked
+  /verifier-invitations/accept:
+    post:
+      operationId: acceptVerifierInvitation
+      tags: [employers]
+      summary: Accept a verifier invite using the authenticated verified email and single-use token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptInvitationInput"
+      responses:
+        "200":
+          description: Active verifier membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifierMembership"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /employments/{employmentId}/performance:
+    parameters:
+      - name: employmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listPerformanceRecords
+      tags: [performance]
+      summary: List performance periods for an employment record
+      responses:
+        "200":
+          description: Performance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PerformanceRecord"
+    post:
+      operationId: createPerformanceRecord
+      tags: [performance]
+      summary: Create a private self-reported quota and revenue record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PerformanceRecordInput"
+      responses:
+        "201":
+          description: Draft performance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceRecord"
+  /performance-records/{performanceId}:
+    parameters:
+      - name: performanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updatePerformanceRecord
+      tags: [performance]
+      summary: Edit a draft performance record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PerformanceRecordUpdate"
+      responses:
+        "200":
+          description: Updated performance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceRecord"
+  /performance-records/{performanceId}/verification-requests:
+    parameters:
+      - name: performanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: requestPerformanceVerification
+      tags: [performance]
+      summary: Send a verification request to authorized verifiers of a verified employer; accepts no employee-supplied email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationRequestInput"
+      responses:
+        "201":
+          description: Verification request sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /verification-invitations/claim:
+    post:
+      operationId: claimVerificationInvitation
+      tags: [employers]
+      summary: Redeem a single-use email link after checking authenticated verifier identity and organization membership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimInvitationInput"
+      responses:
+        "200":
+          description: Invitation redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimedInvitation"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /employer/verification-requests:
+    get:
+      operationId: listEmployerVerificationRequests
+      tags: [employers]
+      summary: List requests visible to the authenticated active verifier
+      responses:
+        "200":
+          description: Verification requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmployerVerificationRequest"
+  /employer/verification-requests/{requestId}:
+    parameters:
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getEmployerVerificationRequest
+      tags: [employers]
+      summary: Read claims for an authorized verifier's employer
+      responses:
+        "200":
+          description: Verification request details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployerVerificationRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: decideEmployerClaims
+      tags: [employers]
+      summary: Confirm, correct with a reason, or decline selected claims
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimDecisionsInput"
+      responses:
+        "200":
+          description: Updated request and claim statuses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployerVerificationRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /performance-records/{performanceId}/visibility:
+    parameters:
+      - name: performanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updatePerformanceVisibility
+      tags: [performance]
+      summary: Let the employee opt each verified claim into the public profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PerformanceVisibilityUpdate"
+      responses:
+        "200":
+          description: Updated public visibility
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceRecord"
+  /performance-records/{performanceId}/revoke:
+    parameters:
+      - name: performanceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: revokePerformanceVerification
+      tags: [performance]
+      summary: Revoke a verification and remove its claims from public display
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokePerformanceInput"
+      responses:
+        "200":
+          description: Revoked performance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceRecord"
+  /me/audit-events:
+    get:
+      operationId: listMyAuditEvents
+      tags: [performance]
+      summary: List immutable audit events for the authenticated employee
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
+  /public-profiles/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 80
+    get:
+      operationId: getPublicProfile
+      tags: [public]
+      summary: Get employee-approved public profile fields and verified performance claims only
+      responses:
+        "200":
+          description: Public profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
+  parameters:
+    Id:
+      name: employmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Forbidden:
+      description: Not authorized for this resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Conflict:
+      description: Conflict or invalid workflow state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
-
+      required: [status]
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    ClaimStatus:
+      type: string
+      enum: [draft, pending, verified, corrected, declined, expired, revoked]
+    RequestStatus:
+      type: string
+      enum: [draft, pending, partially_verified, verified, declined, expired, revoked]
+    OrganizationStatus:
+      type: string
+      enum: [pending_domain, verified, revoked]
+    Decision:
+      type: string
+      enum: [confirmed, corrected, declined]
+    ClaimKey:
+      type: string
+      enum: [quota, achieved_revenue]
+    EmployeeProfile:
+      type: object
+      properties:
+        fullName: { type: string }
+        headline: { type: string }
+        location: { type: ["string", "null"] }
+        bio: { type: ["string", "null"] }
+        publicSlug: { type: string }
+        publicEnabled: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+      required: [fullName, headline, location, bio, publicSlug, publicEnabled, updatedAt]
+    ProfileUpdate:
+      type: object
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 120 }
+        headline: { type: string, maxLength: 180 }
+        location: { type: ["string", "null"], maxLength: 160 }
+        bio: { type: ["string", "null"], maxLength: 2000 }
+        publicEnabled: { type: boolean }
+    Employment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        company: { type: string }
+        role: { type: string }
+        location: { type: ["string", "null"] }
+        startDate: { type: string, format: date }
+        endDate: { type: ["string", "null"], format: date }
+        current: { type: boolean }
+        summary: { type: ["string", "null"] }
+        publicVisible: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, company, role, location, startDate, endDate, current, summary, publicVisible, createdAt]
+    EmploymentInput:
+      type: object
+      properties:
+        company: { type: string, minLength: 1, maxLength: 160 }
+        role: { type: string, minLength: 1, maxLength: 160 }
+        location: { type: ["string", "null"], maxLength: 160 }
+        startDate: { type: string, format: date }
+        endDate: { type: ["string", "null"], format: date }
+        current: { type: boolean }
+        summary: { type: ["string", "null"], maxLength: 3000 }
+        publicVisible: { type: boolean, default: false }
+      required: [company, role, startDate, current]
+    EmploymentUpdate:
+      type: object
+      properties:
+        company: { type: string, minLength: 1, maxLength: 160 }
+        role: { type: string, minLength: 1, maxLength: 160 }
+        location: { type: ["string", "null"], maxLength: 160 }
+        startDate: { type: string, format: date }
+        endDate: { type: ["string", "null"], format: date }
+        current: { type: boolean }
+        summary: { type: ["string", "null"], maxLength: 3000 }
+        publicVisible: { type: boolean }
+    Achievement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        issuer: { type: string }
+        date: { type: ["string", "null"], format: date }
+        description: { type: ["string", "null"] }
+        publicVisible: { type: boolean }
+        verificationLabel:
+          type: string
+          enum: [self_reported, not_verified]
+        createdAt: { type: string, format: date-time }
+      required: [id, title, issuer, date, description, publicVisible, verificationLabel, createdAt]
+    AchievementInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        issuer: { type: string, maxLength: 180 }
+        date: { type: ["string", "null"], format: date }
+        description: { type: ["string", "null"], maxLength: 2000 }
+        publicVisible: { type: boolean, default: false }
+      required: [title]
+    AchievementUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        issuer: { type: string, maxLength: 180 }
+        date: { type: ["string", "null"], format: date }
+        description: { type: ["string", "null"], maxLength: 2000 }
+        publicVisible: { type: boolean }
+    Passport:
+      type: object
+      properties:
+        profile: { $ref: "#/components/schemas/EmployeeProfile" }
+        employments:
+          type: array
+          items: { $ref: "#/components/schemas/Employment" }
+        achievements:
+          type: array
+          items: { $ref: "#/components/schemas/Achievement" }
+        performance:
+          type: array
+          items: { $ref: "#/components/schemas/PerformanceRecord" }
+      required: [profile, employments, achievements, performance]
+    DashboardSummary:
+      type: object
+      properties:
+        employmentCount: { type: integer }
+        achievementCount: { type: integer }
+        performanceCount: { type: integer }
+        verifiedClaimCount: { type: integer }
+        pendingRequestCount: { type: integer }
+        recentEvents:
+          type: array
+          items: { $ref: "#/components/schemas/AuditEvent" }
+      required: [employmentCount, achievementCount, performanceCount, verifiedClaimCount, pendingRequestCount, recentEvents]
+    OrganizationSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        domain: { type: string }
+        status: { $ref: "#/components/schemas/OrganizationStatus" }
+      required: [id, name, domain, status]
+    Organization:
+      allOf:
+        - $ref: "#/components/schemas/OrganizationSummary"
+        - type: object
+          properties:
+            createdAt: { type: string, format: date-time }
+          required: [createdAt]
+    MyOrganization:
+      allOf:
+        - $ref: "#/components/schemas/Organization"
+        - type: object
+          properties:
+            role: { type: string, enum: [admin, verifier] }
+            membershipStatus: { type: string, enum: [invited, active, revoked] }
+          required: [role, membershipStatus]
+    OrganizationInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        domain: { type: string, minLength: 3, maxLength: 253 }
+      required: [name, domain]
+    DomainChallenge:
+      type: object
+      properties:
+        host: { type: string }
+        value: { type: string }
+        expiresAt: { type: string, format: date-time }
+      required: [host, value, expiresAt]
+    VerifierMembership:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [admin, verifier] }
+        status: { type: string, enum: [invited, active, revoked] }
+        createdAt: { type: string, format: date-time }
+      required: [id, email, role, status, createdAt]
+    VerifierInvitation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        expiresAt: { type: string, format: date-time }
+        status: { type: string, enum: [invited, active, revoked] }
+      required: [id, email, expiresAt, status]
+    VerifierInvitationInput:
+      type: object
+      properties:
+        email: { type: string, format: email }
+      required: [email]
+    AcceptInvitationInput:
+      type: object
+      properties:
+        token: { type: string, minLength: 32, maxLength: 256 }
+      required: [token]
+    ClaimInvitationInput:
+      type: object
+      properties:
+        token: { type: string, minLength: 32, maxLength: 256 }
+      required: [token]
+    ClaimedInvitation:
+      type: object
+      properties:
+        requestId: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/RequestStatus" }
+      required: [requestId, status]
+    MoneyValue:
+      type: string
+      pattern: "^(0|[1-9][0-9]{0,11})(\\.[0-9]{1,3})?$"
+      description: Decimal amount encoded as a string to avoid floating-point loss.
+    PerformanceClaim:
+      type: object
+      properties:
+        key: { $ref: "#/components/schemas/ClaimKey" }
+        selfReportedValue: { $ref: "#/components/schemas/MoneyValue" }
+        verifiedValue: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/ClaimStatus" }
+        correctionReason: { type: ["string", "null"] }
+        publicVisible: { type: boolean }
+      required: [key, selfReportedValue, verifiedValue, status, correctionReason, publicVisible]
+    PerformanceRecord:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        employmentId: { type: string, format: uuid }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        definition: { type: string }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        quota: { $ref: "#/components/schemas/PerformanceClaim" }
+        achievedRevenue: { $ref: "#/components/schemas/PerformanceClaim" }
+        attainmentPercent: { type: ["number", "null"] }
+        attainmentLabel:
+          type: string
+          enum: [system_calculated, not_available]
+        requestStatus: { $ref: "#/components/schemas/RequestStatus" }
+        requestExpiresAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+      required: [id, employmentId, periodStart, periodEnd, definition, currency, quota, achievedRevenue, attainmentPercent, attainmentLabel, requestStatus, requestExpiresAt, createdAt]
+    PerformanceRecordInput:
+      type: object
+      properties:
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        definition: { type: string, minLength: 8, maxLength: 500 }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        quota: { $ref: "#/components/schemas/MoneyValue" }
+        achievedRevenue: { $ref: "#/components/schemas/MoneyValue" }
+      required: [periodStart, periodEnd, definition, currency, quota, achievedRevenue]
+    PerformanceRecordUpdate:
+      type: object
+      properties:
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        definition: { type: string, minLength: 8, maxLength: 500 }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        quota: { $ref: "#/components/schemas/MoneyValue" }
+        achievedRevenue: { $ref: "#/components/schemas/MoneyValue" }
+    VerificationRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        performanceId: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/RequestStatus" }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+      required: [id, performanceId, organizationId, status, expiresAt, createdAt]
+    VerificationRequestInput:
+      type: object
+      properties:
+        organizationId: { type: string, format: uuid }
+      required: [organizationId]
+    EmployerClaim:
+      type: object
+      properties:
+        key: { $ref: "#/components/schemas/ClaimKey" }
+        value: { $ref: "#/components/schemas/MoneyValue" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        status: { $ref: "#/components/schemas/ClaimStatus" }
+      required: [key, value, currency, status]
+    EmployerVerificationRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/RequestStatus" }
+        employeeName: { type: string }
+        employmentRole: { type: string }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        definition: { type: string }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        claims:
+          type: array
+          items: { $ref: "#/components/schemas/EmployerClaim" }
+        expiresAt: { type: string, format: date-time }
+      required: [id, status, employeeName, employmentRole, periodStart, periodEnd, definition, currency, claims, expiresAt]
+    ClaimDecision:
+      type: object
+      properties:
+        key: { $ref: "#/components/schemas/ClaimKey" }
+        decision: { $ref: "#/components/schemas/Decision" }
+        correctedValue: { $ref: "#/components/schemas/MoneyValue" }
+        reason: { type: string, minLength: 8, maxLength: 1000 }
+      required: [key, decision]
+    ClaimDecisionsInput:
+      type: object
+      properties:
+        decisions:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items: { $ref: "#/components/schemas/ClaimDecision" }
+      required: [decisions]
+    PerformanceVisibilityUpdate:
+      type: object
+      properties:
+        quotaPublic: { type: boolean }
+        achievedRevenuePublic: { type: boolean }
+      required: [quotaPublic, achievedRevenuePublic]
+    RevokePerformanceInput:
+      type: object
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+      required: [reason]
+    AuditEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        subjectType: { type: string }
+        subjectId: { type: string, format: uuid }
+        eventType: { type: string }
+        actorRole: { type: string }
+        claimKey: { type: ["string", "null"] }
+        occurredAt: { type: string, format: date-time }
+      required: [id, subjectType, subjectId, eventType, actorRole, claimKey, occurredAt]
+    PublicPerformanceClaim:
+      type: object
+      properties:
+        key: { $ref: "#/components/schemas/ClaimKey" }
+        value: { $ref: "#/components/schemas/MoneyValue" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        label: { type: string, enum: [employer_verified] }
+      required: [key, value, currency, label]
+    PublicPerformanceRecord:
+      type: object
+      properties:
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        quota: { anyOf: [{ $ref: "#/components/schemas/PublicPerformanceClaim" }, { type: "null" }] }
+        achievedRevenue: { anyOf: [{ $ref: "#/components/schemas/PublicPerformanceClaim" }, { type: "null" }] }
+        attainmentPercent: { type: ["number", "null"] }
+        attainmentLabel:
+          type: string
+          enum: [system_calculated, not_available]
+      required: [periodStart, periodEnd, quota, achievedRevenue, attainmentPercent, attainmentLabel]
+    PublicAchievement:
+      type: object
+      properties:
+        title: { type: string }
+        issuer: { type: string }
+        date: { type: ["string", "null"], format: date }
+        verificationLabel: { type: string, enum: [self_reported, not_verified] }
+      required: [title, issuer, date, verificationLabel]
+    PublicProfile:
+      type: object
+      properties:
+        fullName: { type: string }
+        headline: { type: string }
+        location: { type: ["string", "null"] }
+        bio: { type: ["string", "null"] }
+        employments:
+          type: array
+          items:
+            type: object
+            properties:
+              company: { type: string }
+              role: { type: string }
+              location: { type: ["string", "null"] }
+              startDate: { type: string, format: date }
+              endDate: { type: ["string", "null"], format: date }
+              current: { type: boolean }
+              performance:
+                type: array
+                items: { $ref: "#/components/schemas/PublicPerformanceRecord" }
+            required: [company, role, location, startDate, endDate, current, performance]
+        achievements:
+          type: array
+          items: { $ref: "#/components/schemas/PublicAchievement" }
+      required: [fullName, headline, location, bio, employments, achievements]
